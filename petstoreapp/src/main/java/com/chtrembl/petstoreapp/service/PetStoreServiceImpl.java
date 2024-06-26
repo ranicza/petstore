@@ -20,7 +20,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -28,9 +27,7 @@ import org.springframework.web.reactive.function.client.WebClientException;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -41,15 +38,18 @@ public class PetStoreServiceImpl implements PetStoreService {
 	private final User sessionUser;
 	private final ContainerEnvironment containerEnvironment;
 	private final WebRequest webRequest;
+	private final TelemetryClient telemetryClient;
 
 	private WebClient petServiceWebClient = null;
 	private WebClient productServiceWebClient = null;
 	private WebClient orderServiceWebClient = null;
 
-	public PetStoreServiceImpl(User sessionUser, ContainerEnvironment containerEnvironment, WebRequest webRequest) {
+	public PetStoreServiceImpl(User sessionUser, ContainerEnvironment containerEnvironment, WebRequest webRequest,
+							   TelemetryClient telemetryClient) {
 		this.sessionUser = sessionUser;
 		this.containerEnvironment = containerEnvironment;
 		this.webRequest = webRequest;
+		this.telemetryClient = telemetryClient;
 	}
 
 	@PostConstruct
@@ -121,6 +121,13 @@ public class PetStoreServiceImpl implements PetStoreService {
 	public Collection<Product> getProducts(String category, List<Tag> tags) {
 		List<Product> products = new ArrayList<>();
 
+		// Log who is making the request.
+		Map<String, String> properties = Map.of(
+				"UserEmail", this.sessionUser.getEmail(),
+				"SessionId", this.sessionUser.getSessionId()
+		);
+		telemetryClient.trackEvent("UserRequestEvent", properties, null);
+
 		try {
 			Consumer<HttpHeaders> consumer = it -> it.addAll(this.webRequest.getHeaders());
 			products = this.productServiceWebClient.get()
@@ -138,6 +145,9 @@ public class PetStoreServiceImpl implements PetStoreService {
 			// to show Telemetry with APIM requests (normally this would be cached in a real
 			// world production scenario)
 			this.sessionUser.setProducts(products);
+
+			// Log count of returned products as custom metric.
+			telemetryClient.trackMetric("ProductsCountMetric", sessionUser.getProducts().size());
 
 			// filter this specific request per category
 			if (tags.stream().anyMatch(t -> t.getName().equals("large"))) {
