@@ -87,6 +87,9 @@ public class ContainerEnvironment implements Serializable {
 	@Value("${petstore.signalr.key:}")
 	private String signalRKey;
 
+	@Value("${order.reservation.func-app-url:}")
+	private String orderReservationFuncAppURL;
+
 	private WebClient signalRWebClient = null;
 
 	public static String CURRENT_USERS_HUB = "currentUsers";
@@ -209,6 +212,14 @@ public class ContainerEnvironment implements Serializable {
 
 	public String getPetStoreProductServiceURL() {
 		return petStoreProductServiceURL;
+	}
+
+	public String getOrderReservationFuncAppURL() {
+		return orderReservationFuncAppURL;
+	}
+
+	public void setOrderReservationFuncAppURL(String orderReservationFuncAppURL) {
+		this.orderReservationFuncAppURL = orderReservationFuncAppURL;
 	}
 
 	public String getPetStoreOrderServiceURL() {

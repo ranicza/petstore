@@ -4,14 +4,7 @@ package com.chtrembl.petstoreapp.service;
  * Implementation for service calls to the APIM/AKS
  */
 
-import com.chtrembl.petstoreapp.model.Category;
-import com.chtrembl.petstoreapp.model.ContainerEnvironment;
-import com.chtrembl.petstoreapp.model.Order;
-import com.chtrembl.petstoreapp.model.Pet;
-import com.chtrembl.petstoreapp.model.Product;
-import com.chtrembl.petstoreapp.model.Tag;
-import com.chtrembl.petstoreapp.model.User;
-import com.chtrembl.petstoreapp.model.WebRequest;
+import com.chtrembl.petstoreapp.model.*;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -20,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -45,6 +37,7 @@ public class PetStoreServiceImpl implements PetStoreService {
 	private WebClient petServiceWebClient = null;
 	private WebClient productServiceWebClient = null;
 	private WebClient orderServiceWebClient = null;
+	private WebClient orderReservationFAppClient = null;
 
 	public PetStoreServiceImpl(User sessionUser, ContainerEnvironment containerEnvironment, WebRequest webRequest) {
 		this.sessionUser = sessionUser;
@@ -60,6 +53,8 @@ public class PetStoreServiceImpl implements PetStoreService {
 		this.productServiceWebClient = WebClient.builder()
 				.baseUrl(this.containerEnvironment.getPetStoreProductServiceURL()).build();
 		this.orderServiceWebClient = WebClient.builder().baseUrl(this.containerEnvironment.getPetStoreOrderServiceURL())
+				.build();
+		this.orderReservationFAppClient = WebClient.builder().baseUrl(this.containerEnvironment.getOrderReservationFuncAppURL())
 				.build();
 	}
 
@@ -213,6 +208,22 @@ public class PetStoreServiceImpl implements PetStoreService {
 					.header("Cache-Control", "no-cache")
 					.retrieve()
 					.bodyToMono(Order.class).block();
+
+			// Send order items reservation details to Azure Function App
+			String updatedOrderJSON =  new ObjectMapper().setSerializationInclusion(Include.NON_NULL)
+					.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+					.configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false)
+					.writeValueAsString(updatedOrder);
+
+			var orderRequest = new OrderReservationRequest(this.sessionUser.getSessionId(), updatedOrderJSON);
+
+			this.orderReservationFAppClient.post()
+					.uri("/api/OrderItemReservation")
+					.contentType(MediaType.APPLICATION_JSON)
+					.body(Mono.just(orderRequest), OrderReservationRequest.class)
+					.retrieve()
+					.bodyToMono(String.class)
+					.block();
 
 		} catch (Exception e) {
 			logger.warn(e.getMessage());

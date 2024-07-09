@@ -39,3 +39,6 @@ spring:
     cache: false
   cache:
     cache-names: currentUsers
+order:
+  reservation:
+    func-app-url: ${ORDER_RESERVATION_FUNC_APP_URL}
