@@ -29,7 +29,8 @@
         <jaxb.version>2.4.0-b180830.0359</jaxb.version>
         <azure.cosmos.version>4.41.0</azure.cosmos.version>
         <azure.servicebus.version>7.13.3</azure.servicebus.version>
-        <lombock.version>1.18.24</lombock.version>
+        <spring.cloud.azure.version>5.14.0</spring.cloud.azure.version>
+        <lombok.version>1.18.34</lombok.version>
     </properties>
 
     <dependencies>
@@ -89,6 +90,11 @@
             <groupId>javax.xml.bind</groupId>
             <artifactId>jaxb-api</artifactId>
             <version>${jaxb.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.azure.spring</groupId>
+            <artifactId>spring-cloud-azure-starter-data-cosmos</artifactId>
+            <version>${spring.cloud.azure.version}</version>
         </dependency>
 <!--        <dependency>-->
 <!--            <groupId>com.azure</groupId>-->
