@@ -13,9 +13,9 @@ spring:
     pathmatch:
       matching-strategy: ant_path_matcher
   datasource:
-    url: ${PETSTOREPRODUCTSERVICE_DB_URL:}
-    username: ${PETSTOREPRODUCTSERVICE_DB_USERNAME:}
-    password: ${PETSTOREPRODUCTSERVICE_DB_PASSWORD:}
+    url: ${productServiceDbUrl}
+    username: ${productServiceDbUsername}
+    password: ${productServiceDbPassword}
     azure:
       passwordless-enabled: true
   jpa:
@@ -29,6 +29,13 @@ spring:
   sql:
     init:
       mode: always
+  cloud:
+    azure:
+      keyvault:
+        secret:
+          property-source-enabled: true
+          property-sources[0]:
+            endpoint: https://petstore-demo-vault.vault.azure.net
 
 logging:
   level:
