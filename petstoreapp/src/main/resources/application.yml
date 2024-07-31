@@ -39,6 +39,10 @@ spring:
     cache: false
   cache:
     cache-names: currentUsers
-order:
-  reservation:
-    func-app-url: ${ORDER_RESERVATION_FUNC_APP_URL}
+  cloud:
+    azure:
+      servicebus:
+        namespace: petstoreservicebus
+        entity-name: orders
+        entity-type: queue
+        connection-string: ${SERVICE_BUS_CONNECTION_STRING:}

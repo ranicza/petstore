@@ -4,6 +4,9 @@ package com.chtrembl.petstoreapp.service;
  * Implementation for service calls to the APIM/AKS
  */
 
+import com.azure.core.util.BinaryData;
+import com.azure.messaging.servicebus.ServiceBusMessage;
+import com.azure.messaging.servicebus.ServiceBusSenderClient;
 import com.chtrembl.petstoreapp.model.*;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,16 +36,18 @@ public class PetStoreServiceImpl implements PetStoreService {
 	private final User sessionUser;
 	private final ContainerEnvironment containerEnvironment;
 	private final WebRequest webRequest;
+	private final ServiceBusSenderClient senderClient;
 
 	private WebClient petServiceWebClient = null;
 	private WebClient productServiceWebClient = null;
 	private WebClient orderServiceWebClient = null;
-	private WebClient orderReservationFAppClient = null;
 
-	public PetStoreServiceImpl(User sessionUser, ContainerEnvironment containerEnvironment, WebRequest webRequest) {
+	public PetStoreServiceImpl(User sessionUser, ContainerEnvironment containerEnvironment, WebRequest webRequest,
+							   ServiceBusSenderClient senderClient) {
 		this.sessionUser = sessionUser;
 		this.containerEnvironment = containerEnvironment;
 		this.webRequest = webRequest;
+		this.senderClient = senderClient;
 	}
 
 	@PostConstruct
@@ -53,8 +58,6 @@ public class PetStoreServiceImpl implements PetStoreService {
 		this.productServiceWebClient = WebClient.builder()
 				.baseUrl(this.containerEnvironment.getPetStoreProductServiceURL()).build();
 		this.orderServiceWebClient = WebClient.builder().baseUrl(this.containerEnvironment.getPetStoreOrderServiceURL())
-				.build();
-		this.orderReservationFAppClient = WebClient.builder().baseUrl(this.containerEnvironment.getOrderReservationFuncAppURL())
 				.build();
 	}
 
@@ -216,14 +219,7 @@ public class PetStoreServiceImpl implements PetStoreService {
 					.writeValueAsString(updatedOrder);
 
 			var orderRequest = new OrderReservationRequest(this.sessionUser.getSessionId(), updatedOrderJSON);
-
-			this.orderReservationFAppClient.post()
-					.uri("/api/OrderItemReservation")
-					.contentType(MediaType.APPLICATION_JSON)
-					.body(Mono.just(orderRequest), OrderReservationRequest.class)
-					.retrieve()
-					.bodyToMono(String.class)
-					.block();
+			this.senderClient.sendMessage(new ServiceBusMessage(BinaryData.fromObject(orderRequest)));
 
 		} catch (Exception e) {
 			logger.warn(e.getMessage());
