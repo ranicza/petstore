@@ -1,5 +1,6 @@
 package com.chtrembl.petstore.order.api;
 
+import com.chtrembl.petstore.order.service.OrderService;
 import com.chtrembl.petstore.order.model.ContainerEnvironment;
 import com.chtrembl.petstore.order.model.Order;
 import com.chtrembl.petstore.order.model.Product;
@@ -25,8 +26,7 @@ import javax.validation.constraints.Min;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2021-12-21T10:17:19.885-05:00")
 
@@ -48,6 +48,9 @@ public class StoreApiController implements StoreApi {
 	private ContainerEnvironment containerEnvironment;
 
 	@Autowired
+	private OrderService orderService;
+
+	@Autowired
 	private StoreApiCache storeApiCache;
 
 	@Override
@@ -55,7 +58,7 @@ public class StoreApiController implements StoreApi {
 		return storeApiCache;
 	}
 
-	@org.springframework.beans.factory.annotation.Autowired
+	@Autowired
 	public StoreApiController(ObjectMapper objectMapper, NativeWebRequest request) {
 		this.objectMapper = objectMapper;
 		this.request = request;
@@ -114,19 +117,23 @@ public class StoreApiController implements StoreApi {
 					"PetStoreOrderService incoming POST request to petstoreorderservice/v2/order/placeOder for order id:%s",
 					body.getId()));
 
-			this.storeApiCache.getOrder(body.getId()).setId(body.getId());
-			this.storeApiCache.getOrder(body.getId()).setEmail(body.getEmail());
-			this.storeApiCache.getOrder(body.getId()).setComplete(body.isComplete());
+			var order = orderService.findById(body.getId()).orElseGet(Order::new);
+			order.setId(body.getId());
+			order.setEmail(body.getEmail());
+			order.setComplete(body.isComplete());
+			log.info("Place Order: order", order.toString());
+
 
 			// 1 product is just an add from a product page so cache needs to be updated
 			if (body.getProducts() != null && body.getProducts().size() == 1) {
 				Product incomingProduct = body.getProducts().get(0);
-				List<Product> existingProducts = this.storeApiCache.getOrder(body.getId()).getProducts();
+				List<Product> existingProducts = order.getProducts();
 				if (existingProducts != null && existingProducts.size() > 0) {
 					// removal if one exists...
 					if (incomingProduct.getQuantity() == 0) {
 						existingProducts.removeIf(product -> product.getId().equals(incomingProduct.getId()));
-						this.storeApiCache.getOrder(body.getId()).setProducts(existingProducts);
+						enrichProductDetails(existingProducts);
+						order.setProducts(existingProducts);
 					}
 					// update quantity if one exists or add new entry
 					else {
@@ -145,25 +152,33 @@ public class StoreApiController implements StoreApi {
 							}
 						} else {
 							// existing products but one does not exist matching the incoming product
-							this.storeApiCache.getOrder(body.getId()).addProductsItem(body.getProducts().get(0));
+							var orderedProducts = Optional.ofNullable(body.getProducts()).orElse(new ArrayList<>());
+							enrichProductDetails(orderedProducts);
+							order.addProductsItem(orderedProducts.get(0));
 						}
 					}
 				} else {
 					// nothing existing....
 					if (body.getProducts().get(0).getQuantity() > 0) {
-						this.storeApiCache.getOrder(body.getId()).setProducts(body.getProducts());
+						var orderedProducts = body.getProducts();
+						enrichProductDetails(orderedProducts);
+						order.setProducts(orderedProducts);
 					}
 				}
 			}
 			// n products is the current order being modified and so cache can be replaced
 			// with it
 			if (body.getProducts() != null && body.getProducts().size() > 1) {
-				this.storeApiCache.getOrder(body.getId()).setProducts(body.getProducts());
+				var orderedProducts = body.getProducts();
+				enrichProductDetails(orderedProducts);
+				order.setProducts(orderedProducts);
 			}
 
 			try {
-				Order order = this.storeApiCache.getOrder(body.getId());
 				String orderJSON = new ObjectMapper().writeValueAsString(order);
+
+				log.info("Saving order to the storage: ", order.toString());
+				orderService.save(order);
 
 				ApiUtil.setResponse(request, "application/json", orderJSON);
 				return new ResponseEntity<>(HttpStatus.OK);
@@ -179,7 +194,7 @@ public class StoreApiController implements StoreApi {
 
 	@Override
 	public ResponseEntity<Order> getOrderById(
-			@ApiParam(value = "ID of the order that needs to be deleted", required = true) @PathVariable("orderId") String orderId) {
+			@ApiParam(value = "ID of the order", required = true) @PathVariable("orderId") String orderId) {
 		conigureThreadForLogging();
 
 		String acceptType = request.getHeader("Content-Type");
@@ -191,27 +206,8 @@ public class StoreApiController implements StoreApi {
 					"PetStoreOrderService incoming GET request to petstoreorderservice/v2/order/getOrderById for order id:%s",
 					orderId));
 
-			List<Product> products = this.storeApiCache.getProducts();
-
-			Order order = this.storeApiCache.getOrder(orderId);
-
-			if (products != null) {
-				// cross reference order data (order only has product id and qty) with product
-				// data....
-				try {
-					if (order.getProducts() != null) {
-						for (Product p : order.getProducts()) {
-							Product peekedProduct = getProduct(products, p.getId());
-							p.setName(peekedProduct.getName());
-							p.setPhotoURL((peekedProduct.getPhotoURL()));
-						}
-					}
-				} catch (Exception e) {
-					log.error(String.format(
-							"PetStoreOrderService incoming GET request to petstoreorderservice/v2/order/getOrderById for order id:%s failed: %s",
-							orderId, e.getMessage()));
-				}
-			}
+			var order = orderService.findById(orderId).orElseGet(Order::new);
+			log.info("Retrieved order: ", order.toString());
 
 			try {
 				ApiUtil.setResponse(request, "application/json", new ObjectMapper().writeValueAsString(order));
@@ -252,4 +248,22 @@ public class StoreApiController implements StoreApi {
 
 		return new ResponseEntity<Map<String, Integer>>(HttpStatus.NOT_IMPLEMENTED);
 	}
+
+	private void enrichProductDetails(List<Product> orderProducts) {
+		var cachedProducts = this.storeApiCache.getProducts();
+
+		if (cachedProducts != null) {
+			// cross reference order data (order only has product id and qty) with product
+			// data....
+			if (orderProducts != null) {
+				for (Product p : orderProducts) {
+					var peekedProduct = getProduct(cachedProducts, p.getId());
+					p.setName(peekedProduct.getName());
+					p.setPhotoURL((peekedProduct.getPhotoURL()));
+				}
+			}
+		}
+	}
 }
+
+

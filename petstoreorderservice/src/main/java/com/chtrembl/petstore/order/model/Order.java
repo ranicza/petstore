@@ -7,6 +7,9 @@ import java.util.Objects;
 
 import javax.validation.Valid;
 
+import com.azure.spring.data.cosmos.core.mapping.Container;
+import com.azure.spring.data.cosmos.core.mapping.PartitionKey;
+import org.springframework.data.annotation.Id;
 import org.springframework.validation.annotation.Validated;
 import org.threeten.bp.OffsetDateTime;
 
@@ -21,9 +24,11 @@ import io.swagger.annotations.ApiModelProperty;
  */
 @Validated
 @javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2021-12-23T15:16:30.446-05:00")
-
+@Container(containerName = "orders")
 public class Order implements Serializable {
 	@JsonProperty("id")
+	@Id
+	@PartitionKey
 	private String id = null;
 
 	@JsonProperty("email")
