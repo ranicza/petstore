@@ -25,7 +25,7 @@
         <log4j.version>2.20.0</log4j.version>
         <applicationinsights.version>2.6.4</applicationinsights.version>
         <azure-active-directory.version>2.2.4</azure-active-directory.version>
-        <spring-cloud-azure-starter.version>4.6.0</spring-cloud-azure-starter.version>
+        <spring-cloud-azure.version>4.6.0</spring-cloud-azure.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
     </properties>
 
@@ -67,12 +67,12 @@
         <dependency>
             <groupId>com.azure.spring</groupId>
             <artifactId>spring-cloud-azure-starter</artifactId>
-            <version>${spring-cloud-azure-starter.version}</version>
+            <version>${spring-cloud-azure.version}</version>
         </dependency>
         <dependency>
             <groupId>com.azure.spring</groupId>
             <artifactId>spring-cloud-azure-starter-active-directory-b2c</artifactId>
-            <version>${spring-cloud-azure-starter.version}</version>
+            <version>${spring-cloud-azure.version}</version>
         </dependency>
         <dependency>
             <groupId>javax.cache</groupId>
@@ -136,6 +136,13 @@
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
                 <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.azure.spring</groupId>
+                <artifactId>spring-cloud-azure-dependencies</artifactId>
+                <version>${spring-cloud-azure.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
