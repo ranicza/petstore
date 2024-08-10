@@ -35,7 +35,7 @@ spring:
         secret:
           property-source-enabled: true
           property-sources[0]:
-            endpoint: https://petstore-demo-vault.vault.azure.net
+            endpoint: https://petstoredemo-vault.vault.azure.net
 
 logging:
   level:
