@@ -27,8 +27,7 @@ spring:
     azure:
       keyvault:
         secret:
-          endpoint: https://petstoredemo-vault.vault.azure.net/
-
+          endpoint: https://petstoredemo-vault.vault.azure.net
 
 logging:
   level:
