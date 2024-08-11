@@ -19,12 +19,15 @@ spring:
       matching-strategy: ant_path_matcher
   cloud:
     azure:
+      keyvault:
+        secret:
+          property-source-enabled: true
+          property-sources[0]:
+            endpoint: https://petstoredemo-vault.vault.azure.net
       cosmos:
-        endpoint: ${AZURE_COSMOS_ENDPOINT:}
-        key: ${AZURE_COSMOS_KEY:}
+        endpoint: ${cosmosEndpoint}
+        key: ${cosmosKey}
         database: petstore
-#        populate-query-metrics: true
-
 
 management:
   endpoints:

@@ -27,6 +27,7 @@
         <jaxb.version>2.4.0-b180830.0359</jaxb.version>
         <postgresql.version>42.7.3</postgresql.version>
         <org.mapstruct.version>1.5.3.Final</org.mapstruct.version>
+        <spring.cloud.azure.version>5.14.0</spring.cloud.azure.version>
         <lombock.version>1.18.24</lombock.version>
     </properties>
 
@@ -100,7 +101,6 @@
             <artifactId>spring-cloud-azure-starter-keyvault-secrets</artifactId>
         </dependency>
 
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -125,7 +125,7 @@
             <dependency>
                 <groupId>com.azure.spring</groupId>
                 <artifactId>spring-cloud-azure-dependencies</artifactId>
-                <version>5.14.0</version>
+                <version>${spring.cloud.azure.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
