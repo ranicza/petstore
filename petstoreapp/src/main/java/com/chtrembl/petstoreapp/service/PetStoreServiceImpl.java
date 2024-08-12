@@ -26,8 +26,10 @@ import javax.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import com.microsoft.applicationinsights.TelemetryClient;
 
 @Service
 public class PetStoreServiceImpl implements PetStoreService {
@@ -41,6 +43,7 @@ public class PetStoreServiceImpl implements PetStoreService {
 	private WebClient petServiceWebClient = null;
 	private WebClient productServiceWebClient = null;
 	private WebClient orderServiceWebClient = null;
+	private TelemetryClient telemetryClient = null;
 
 	public PetStoreServiceImpl(User sessionUser, ContainerEnvironment containerEnvironment, WebRequest webRequest,
 							   ServiceBusSenderClient senderClient) {
@@ -59,6 +62,7 @@ public class PetStoreServiceImpl implements PetStoreService {
 				.baseUrl(this.containerEnvironment.getPetStoreProductServiceURL()).build();
 		this.orderServiceWebClient = WebClient.builder().baseUrl(this.containerEnvironment.getPetStoreOrderServiceURL())
 				.build();
+		this.telemetryClient = new TelemetryClient();
 	}
 
 	@Override
@@ -119,6 +123,13 @@ public class PetStoreServiceImpl implements PetStoreService {
 	public Collection<Product> getProducts(String category, List<Tag> tags) {
 		List<Product> products = new ArrayList<>();
 
+		// Log who is making the request
+		Map<String, String> properties = Map.of(
+				"UserName", this.sessionUser.getName(),
+				"SessionId", this.sessionUser.getSessionId()
+		);
+		telemetryClient.trackEvent("User Request Event", properties, null);
+
 		try {
 			Consumer<HttpHeaders> consumer = it -> it.addAll(this.webRequest.getHeaders());
 			products = this.productServiceWebClient.get()
@@ -136,6 +147,9 @@ public class PetStoreServiceImpl implements PetStoreService {
 			// to show Telemetry with APIM requests (normally this would be cached in a real
 			// world production scenario)
 			this.sessionUser.setProducts(products);
+
+			// Log count of returned products as custom metric
+			telemetryClient.trackMetric("Products Count Metric", sessionUser.getProducts().size());
 
 			// filter this specific request per category
 			if (tags.stream().anyMatch(t -> t.getName().equals("large"))) {
