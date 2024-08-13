@@ -73,7 +73,7 @@ public interface StoreApi {
 	@RequestMapping(value = "/store/order/{orderId}", produces = { "application/json",
 			"application/xml" }, method = RequestMethod.GET)
 	ResponseEntity<Order> getOrderById(
-			@Min(1L) @Max(10L) @ApiParam(value = "ID of pet product that needs to be fetched", required = true) @PathVariable("orderId") String orderId);
+			@Min(1L) @ApiParam(value = "ID of pet product that needs to be fetched", required = true) @PathVariable("orderId") String orderId);
 
 	@ApiOperation(value = "Place an order for a pet product", nickname = "placeOrder", notes = "", response = Order.class, tags = {
 			"store", })

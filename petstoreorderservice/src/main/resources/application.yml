@@ -17,6 +17,17 @@ spring:
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
+  cloud:
+    azure:
+      keyvault:
+        secret:
+          property-source-enabled: true
+          property-sources[0]:
+            endpoint: https://petstoredemo-vault.vault.azure.net
+      cosmos:
+        endpoint: ${cosmosEndpoint}
+        key: ${cosmosKey}
+        database: petstore
 
 management:
   endpoints:

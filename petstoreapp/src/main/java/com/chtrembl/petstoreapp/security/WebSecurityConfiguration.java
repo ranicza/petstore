@@ -21,7 +21,7 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
 	private AADB2COidcLoginConfigurerWrapper aadB2COidcLoginConfigurerWrapper = null;
 
 	@Autowired
-	private ContainerEnvironment containeEnvironment;
+	private ContainerEnvironment containerEnvironment;
 
 	@Override
 	public void configure(WebSecurity web) throws Exception {
@@ -54,7 +54,7 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
 					.authenticated().and().apply(this.aadB2COidcLoginConfigurerWrapper.getConfigurer()).and()
 					.oauth2Login().loginPage("/login");
 
-			this.containeEnvironment.setSecurityEnabled(true);
+			this.containerEnvironment.setSecurityEnabled(true);
 		} else {
 			logger.warn(
 					"azure.activedirectory.b2c.tenant, azure.activedirectory.b2c.client-id, azure.activedirectory.b2c.client-secret and azure.activedirectory.b2c.logout-success-url must be set for Azure B2C Authentication to be enabled, considering configuring Azure B2C App Registration if you would like to authenticate users.");

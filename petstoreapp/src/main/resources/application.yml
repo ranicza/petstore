@@ -39,6 +39,29 @@ spring:
     cache: false
   cache:
     cache-names: currentUsers
-#azure:
-#  application-insights:
-#    instrumentation-key:
+  cloud:
+    azure:
+      keyvault:
+        secret:
+          property-source-enabled: true
+          property-sources[0]:
+            endpoint: https://petstoredemo-vault.vault.azure.net
+      active-directory:
+        b2c:
+          enabled: true
+          tenant: ${petstoreAppB2CTenant}
+          base-uri: "https://${spring.cloud.azure.active-directory.b2c.tenant}.b2clogin.com/${spring.cloud.azure.active-directory.b2c.tenant}.onmicrosoft.com/"
+          credential:
+            client-id: ${petstoreAppB2CClientId}
+            client-secret: '${petstoreAppB2CClientSecret}'
+          logout-success-url: ${PETSTOREAPP_B2C_LOGOUT_URL:}
+          user-flows:
+            sign-up-or-sign-in: B2C_1_signupsignin
+            profile-edit: B2C_1_profileediting
+            password-reset: B2C_1_passwordreset
+          user-name-attribute-name: given_name
+      servicebus:
+        namespace: petstoreservicebus
+        entity-name: orders
+        entity-type: queue
+        connection-string: ${serviceBusConnectionString}

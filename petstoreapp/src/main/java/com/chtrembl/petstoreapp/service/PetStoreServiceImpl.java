@@ -4,14 +4,10 @@ package com.chtrembl.petstoreapp.service;
  * Implementation for service calls to the APIM/AKS
  */
 
-import com.chtrembl.petstoreapp.model.Category;
-import com.chtrembl.petstoreapp.model.ContainerEnvironment;
-import com.chtrembl.petstoreapp.model.Order;
-import com.chtrembl.petstoreapp.model.Pet;
-import com.chtrembl.petstoreapp.model.Product;
-import com.chtrembl.petstoreapp.model.Tag;
-import com.chtrembl.petstoreapp.model.User;
-import com.chtrembl.petstoreapp.model.WebRequest;
+import com.azure.core.util.BinaryData;
+import com.azure.messaging.servicebus.ServiceBusMessage;
+import com.azure.messaging.servicebus.ServiceBusSenderClient;
+import com.chtrembl.petstoreapp.model.*;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -40,16 +36,19 @@ public class PetStoreServiceImpl implements PetStoreService {
 	private final User sessionUser;
 	private final ContainerEnvironment containerEnvironment;
 	private final WebRequest webRequest;
+	private final ServiceBusSenderClient senderClient;
 
 	private WebClient petServiceWebClient = null;
 	private WebClient productServiceWebClient = null;
 	private WebClient orderServiceWebClient = null;
 	private TelemetryClient telemetryClient = null;
 
-	public PetStoreServiceImpl(User sessionUser, ContainerEnvironment containerEnvironment, WebRequest webRequest) {
+	public PetStoreServiceImpl(User sessionUser, ContainerEnvironment containerEnvironment, WebRequest webRequest,
+							   ServiceBusSenderClient senderClient) {
 		this.sessionUser = sessionUser;
 		this.containerEnvironment = containerEnvironment;
 		this.webRequest = webRequest;
+		this.senderClient = senderClient;
 	}
 
 	@PostConstruct
@@ -227,6 +226,15 @@ public class PetStoreServiceImpl implements PetStoreService {
 					.header("Cache-Control", "no-cache")
 					.retrieve()
 					.bodyToMono(Order.class).block();
+
+			// Send order items reservation details to Azure Function App
+			String updatedOrderJSON =  new ObjectMapper().setSerializationInclusion(Include.NON_NULL)
+					.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+					.configure(SerializationFeature.FAIL_ON_SELF_REFERENCES, false)
+					.writeValueAsString(updatedOrder);
+
+			var orderRequest = new OrderReservationRequest(this.sessionUser.getSessionId(), updatedOrderJSON);
+			this.senderClient.sendMessage(new ServiceBusMessage(BinaryData.fromObject(orderRequest)));
 
 		} catch (Exception e) {
 			logger.warn(e.getMessage());
