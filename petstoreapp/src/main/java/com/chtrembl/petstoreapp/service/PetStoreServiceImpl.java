@@ -138,11 +138,6 @@ public class PetStoreServiceImpl implements PetStoreService {
 					.bodyToMono(new ParameterizedTypeReference<List<Product>>() {
 					}).block();
 
-			// Will throw an exception for demo purposes
-//			if(!CollectionUtils.isEmpty(products)) {
-//				throw new Exception("Cannot move further");
-//			}
-
 			// use this for look up on details page, intentionally avoiding spring cache to
 			// ensure service calls are made each for each browser session
 			// to show Telemetry with APIM requests (normally this would be cached in a real
